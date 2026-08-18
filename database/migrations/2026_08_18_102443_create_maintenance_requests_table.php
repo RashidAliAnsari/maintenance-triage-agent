@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('unit_id')->constrained()->cascadeOnDelete();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->text('description');
-            $table->string('category')->nullalble();
+            $table->string('category')->nullable();
             $table->string('urgency')->nullable();
             $table->string('status')->default('submitted');
             $table->string('responsiblity')->nullable();
