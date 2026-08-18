@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('trade');
             $table->decimal('hourly_rate', 8, 2);
             $table->boolean('is_active')->default(true);
-            
+
             $table->timestamps();
         });
     }

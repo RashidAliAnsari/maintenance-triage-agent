@@ -11,13 +11,13 @@ return new class extends Migration
      */
 
     /**
-     * restrictOnDelete() means that if a vendor is deleted, 
-     * the work order will not be deleted, and the deletion of the vendor 
-     * will be restricted if there are any associated work orders. 
-     * This is useful for maintaining data integrity and ensuring that work 
+     * restrictOnDelete() means that if a vendor is deleted,
+     * the work order will not be deleted, and the deletion of the vendor
+     * will be restricted if there are any associated work orders.
+     * This is useful for maintaining data integrity and ensuring that work
      * orders are not accidentally deleted when a vendor is removed from the system.
-     * 
-     * The index is the one the availability check uses to find the work orders 
+     *
+     * The index is the one the availability check uses to find the work orders
      * for a vendor in a given time range.
      */
     public function up(): void

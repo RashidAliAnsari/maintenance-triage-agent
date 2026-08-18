@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Enums;
 
 enum RequestUrgency: string
-
 {
     case Emergency = 'emergency';
     case Urgent = 'urgent';
@@ -13,7 +12,7 @@ enum RequestUrgency: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::Emergency => 'Emergency',
             self::Urgent => 'Urgent',
             self::Routine => 'Routine',

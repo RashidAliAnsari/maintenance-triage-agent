@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-/** 
+/**
  * Which party bears the cost of a repair.
-*/
+ */
 enum Responsibility: string
 {
     case Landlord = 'landlord';
