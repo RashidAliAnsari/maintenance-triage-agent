@@ -91,3 +91,21 @@ left in place as a low-level transcript for debugging.
 infrastructure (what messages were sent to the model); `agent_decisions` logs
 domain events (what the system concluded about a request, and why). Keeping a
 separate table means the audit trail does not depend on a third-party schema.
+
+---
+
+## 2026-08-19 — Transition enforcement split across three files
+
+`RequestStatus::canTransitionTo()` answers whether a move is permitted and
+stays a pure query, so the UI can call it to decide which actions to render
+without wrapping the check in a try/catch. `TransitionRequestStatus` performs
+the move and throws `InvalidStatusTransition` when the answer is no.
+
+The enum holds the rules because they depend only on the current state. If a
+rule ever needs external context — "cannot close while a work order is open" —
+the rules move to a service and the enum reverts to a plain vocabulary. That
+is the expiry condition for this design.
+
+`InvalidStatusTransition` extends `DomainException` rather than `Exception`:
+reaching it means the caller failed to check first, which is a logic error
+rather than a runtime condition.

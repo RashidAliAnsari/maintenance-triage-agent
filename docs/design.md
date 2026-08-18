@@ -43,7 +43,7 @@ Responsibility: landlord, tenant, warranty, unclear
 1. **submitted** — tenant reports the issue
 2. **triaging** — agent classifies category and urgency
 3. **assessing** — agent searches policy documents to determine responsibility
-4. **escalated** — handed to a human (terminal until a human acts)
+4. **escalated** — handed to a human, who either assigns a vendor or closes it
 5. **assigned** — vendor selected and work order created
 6. **scheduled** — appointment set, tenant notified
 7. **completed** — work finished
