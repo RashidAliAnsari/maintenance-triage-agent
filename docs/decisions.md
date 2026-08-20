@@ -109,3 +109,17 @@ is the expiry condition for this design.
 `InvalidStatusTransition` extends `DomainException` rather than `Exception`:
 reaching it means the caller failed to check first, which is a logic error
 rather than a runtime condition.
+
+---
+
+## 2026-08-20 — Tests run against Postgres, not SQLite
+
+`phpunit.xml` sets `DB_CONNECTION=pgsql` and `DB_DATABASE=maintenance_triage_test`.
+Host, port, and credentials come from `.env`, so no secrets are committed.
+
+SQLite is not an option: `document_chunks` uses pgvector, which SQLite has no
+equivalent for. Testing on a different engine than the app runs on would also
+hide schema-level bugs.
+
+A separate database is required because `RefreshDatabase` truncates between
+tests, which would destroy development data.
