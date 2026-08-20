@@ -123,3 +123,39 @@ hide schema-level bugs.
 
 A separate database is required because `RefreshDatabase` truncates between
 tests, which would destroy development data.
+
+---
+
+## 2026-08-21 — Policy documents stored as markdown fixtures
+
+The five knowledge base documents live in `database/seeders/documents/` as
+markdown, committed to the repository.
+
+Markdown rather than PDF: the ingestion path is read-file-and-store, with no
+parser in between. PDF text extraction loses table structure and breaks line
+endings, adding failure modes for no demonstration value. Headings also give
+natural chunk boundaries, so chunks land on clause boundaries rather than at
+arbitrary character counts.
+
+`database/seeders/` rather than `public/` or `storage/app/public`: these are
+fixtures that ship with the repository, not user uploads, and there is no
+reason to serve them over HTTP.
+
+If PDF sources are ever needed, a parser sits in front of the same pipeline —
+chunking, embedding, and search are unchanged.
+
+---
+
+## 2026-08-21 — Factory embeddings default to null
+
+`DocumentChunkFactory` sets `embedding` to null. An `embedded()` state
+generates 768 random floats.
+
+Random vectors are structurally valid but semantically meaningless — they sit
+at an arbitrary point in the space, unrelated to the chunk's text, so any
+similarity search against them returns noise. Real embeddings come only from
+Ollama during ingestion.
+
+The random state exists to test the storage path — that the column accepts 768
+floats and the array cast round-trips correctly — not to test retrieval
+quality.
