@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Lease;
+use App\Models\Tenant;
+use App\Models\Unit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,8 +19,13 @@ class LeaseFactory extends Factory
      */
     public function definition(): array
     {
+        $startDate = fake()->dateTimeBetween('-18 months', '-1 month');
+
         return [
-            //
+            'unit_id' => Unit::factory(),
+            'tenant_id' => Tenant::factory(),
+            'start_date' => $startDate,
+            'end_date' => (clone $startDate)->modify('+12 months'),
         ];
     }
 }

@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
+use App\Models\Property;
 use App\Models\Unit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,7 +21,8 @@ class UnitFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'property_id' => Property::factory(),
+            'unit_number' => fake()->unique()->numberBetween(101, 599),
         ];
     }
 }

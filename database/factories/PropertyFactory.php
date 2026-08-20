@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Models\Property;
@@ -18,7 +20,8 @@ class PropertyFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->streetName().' Apartments',
+            'address' => fake()->streetAddress().', '.fake()->city(),
         ];
     }
 }
