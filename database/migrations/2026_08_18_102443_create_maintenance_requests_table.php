@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('category')->nullable();
             $table->string('urgency')->nullable();
             $table->string('status')->default('submitted');
-            $table->string('responsiblity')->nullable();
+            $table->string('responsibility')->nullable();
             $table->decimal('estimated_hours', 5, 2)->nullable();
             $table->decimal('estimated_cost', 10, 2)->nullable();
 
