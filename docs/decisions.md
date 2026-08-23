@@ -159,3 +159,72 @@ Ollama during ingestion.
 The random state exists to test the storage path — that the column accepts 768
 floats and the array cast round-trips correctly — not to test retrieval
 quality.
+
+---
+
+## 2026-08-23 — Factory defaults are the earliest valid lifecycle state
+
+`definition()` returns the state where nothing has happened yet.
+`MaintenanceRequest` defaults to `submitted` with category, urgency,
+responsibility, and both estimates null. `WorkOrder` defaults to `pending` with
+no `scheduled_for`, matching the gap between vendor selection and booking.
+
+Rejected: randomising status across the whole lifecycle so seeded data looks
+varied. Later states carry obligations — an `assigned` request needs a
+responsibility, a `completed` work order needs to have been scheduled — so a
+random `completed` produces rows that are structurally valid but domain
+nonsense. A test then passes for the wrong reason, or fails in a way that takes
+an hour to trace back to seed data.
+
+Variety comes from named states instead, which also makes the intent of a test
+readable at the call site.
+
+States compose rather than repeat: `assessed()` calls `classified()`,
+`escalated()` and `assigned()` call `assessed()`, and the work order states
+build on `scheduled()`. Each sets only what its own pipeline step produces, so a
+change to what "classified" means lands in one place.
+
+---
+
+## 2026-08-23 — Seeded values are derived, not independently random
+
+`estimated_cost` is computed as `estimated_hours` multiplied by a vendor rate.
+`category` is looked up from the description rather than picked at random.
+
+Same rule in both cases: if a value is a function of another value in
+production, the factory computes it the same way. A row with 3 hours and an
+unrelated $840 cost could never come out of the real pipeline, so a test
+asserting on the cost calculation would be checking against fiction.
+
+The description-to-category map matters most. The agent reads that text and
+decides what it is, so Faker lorem would give a `ClassifyRequest` test no
+correct answer to assert against — and a wrong classification could not be
+distinguished from meaningless input.
+
+Hours are capped at 0.5–4 so the derived cost stays under the $500 approval
+threshold. Unbounded, roughly one in every few `assigned()` calls would land
+above it and produce a request that should have escalated — a test that passes
+ninety times and fails once.
+
+Urgency is left random. Category is objectively determined by the description;
+urgency depends on context the description does not always carry, so a test
+asserting on it should pin it explicitly.
+
+---
+
+## 2026-08-23 — Work order slots obey the derived-availability rule
+
+`WorkOrderFactory` schedules into weekday 09:00–17:00 slots on the half hour,
+correcting weekend dates onto the nearest weekday in whichever direction the
+slot was already heading.
+
+Vendor availability is derived from work orders rather than stored, so
+`FindAvailableVendors` computes against these rows. Slots scattered across
+Sunday nights would mean the tool reasoning about appointments that could not
+exist. Seed data has to obey the same constraints the code will.
+
+Latest start is 16:30 so the appointment finishes inside working hours, and
+times land on the hour or half hour because real booking systems do.
+
+`CarbonImmutable` rather than `Carbon`: the corrections chain, and an immutable
+instance cannot be modified in place by a call whose return value is discarded.
