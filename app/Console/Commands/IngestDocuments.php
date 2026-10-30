@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Ai\Rag\Embedder;
 use App\Ai\Rag\MarkdownChunker;
 use App\Enums\PolicyDocumentType;
 use App\Models\DocumentChunk;
@@ -13,8 +14,6 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Laravel\Ai\Embeddings;
-use Laravel\Ai\Enums\Lab;
 
 #[Signature('documents:ingest')]
 #[Description('Chunk, embed, and store the policy documents in the database')]
@@ -23,7 +22,7 @@ class IngestDocuments extends Command
     /**
      * Execute the console command.
      */
-    public function handle(MarkdownChunker $chunker): int
+    public function handle(MarkdownChunker $chunker, Embedder $embedder): int
     {
         $files = File::files(database_path('seeders/documents'));
 
@@ -53,12 +52,13 @@ class IngestDocuments extends Command
         $pending = DocumentChunk::whereNull('embedding')->get();
 
         if ($pending->isNotEmpty()) {
-            $response = Embeddings::for($pending->pluck('content')->all())
-                ->dimensions(768)
-                ->generate(Lab::Ollama, 'nomic-embed-text');
+
+            $texts = $pending->map(fn (DocumentChunk $chunk): string => $chunk->content)->all();
+
+            $vectors = $embedder->embed(array_values($texts));
 
             foreach ($pending as $index => $chunk) {
-                $chunk->update(['embedding' => $response->embeddings[$index]]);
+                $chunk->update(['embedding' => $vectors[$index]]);
             }
 
             $this->info("Embedded {$pending->count()} chunks");
