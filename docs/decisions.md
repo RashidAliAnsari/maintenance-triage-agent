@@ -228,3 +228,104 @@ times land on the hour or half hour because real booking systems do.
 
 `CarbonImmutable` rather than `Carbon`: the corrections chain, and an immutable
 instance cannot be modified in place by a call whose return value is discarded.
+
+---
+
+## 2026-09-14 — Policy documents chunked on H2 headings only
+
+`MarkdownChunker` splits each document at `## ` headings. H3 subheadings
+stay inside their parent chunk, the H1 title and metadata block before the
+first H2 are discarded, and `---` separators are stripped. The heading line
+is kept as the first line of each chunk's text.
+
+Subclauses cross-reference each other within a section (Clause 15 points
+back to 12.5 and 13.1), so splitting below H2 would separate text the agent
+needs together. Only the SOP uses real H3 headings; the other documents mark
+subclauses with bold text, so splitting on H3 would give one document finer
+chunks than the rest.
+
+Keeping the heading in the chunk text means no `heading` column on
+`document_chunks` and no migration. The retrieval classes live under
+`App\Ai\Rag`, next to the SDK's own `App\Ai\Agents` and `App\Ai\Tools`.
+
+See 2026-10-30 on what this granularity costs in retrieval precision.
+
+---
+
+## 2026-10-30 — Fixture filenames match PolicyDocumentType values
+
+The five fixtures are named after the enum's backing values (`lease.md`,
+`warranty.md`, `rate_sheet.md`, and so on), so `documents:ingest` maps each
+file to its type with `PolicyDocumentType::from()`. An unknown file in the
+folder throws instead of being stored under a guessed type.
+
+Rejected: changing the enum values to match the old filenames. The values
+are what is stored in `policy_documents.type`, and renaming five fixtures
+touches nothing else.
+
+---
+
+## 2026-10-30 — Ingestion rebuilds a document's chunks on every run
+
+`documents:ingest` upserts one `PolicyDocument` per type with
+`updateOrCreate`, then deletes that document's chunks and inserts them
+again. Running it repeatedly never duplicates rows, and editing a fixture
+never leaves stale chunks behind.
+
+The consequence is that every run re-embeds all chunks. The
+`whereNull('embedding')` resume path from 2026-08-18 now only matters when
+the embedding call fails after chunks are written. At 26 chunks a full
+re-embed takes seconds. If the corpus grows, compare a content hash before
+rebuilding a document.
+
+---
+
+## 2026-10-30 — Embedder owns the model, dimensions, and task prefixes
+
+`App\Ai\Rag\Embedder` is the only class that calls the embeddings API.
+Ingestion and search both go through it, so a query can never be embedded
+with a different model than the stored chunks.
+
+The model and dimensions are constants, not config. Changing either means a
+migration and a full re-embed, so a setting would suggest a flexibility that
+does not exist.
+
+nomic-embed-text requires a task prefix on every input: `search_document:`
+for stored text and `search_query:` for questions. Without them, scores for
+a test query bunched within 0.03 of each other, and an unrelated query could
+not be told apart from a real one. `embedDocuments()` and `embedQuery()` add
+the prefixes; the underlying `embed()` is private, so no caller can skip
+them. Prefixes are sent to the model only; stored chunk text stays clean.
+
+---
+
+## 2026-10-30 — Similarity threshold 0.45, top three results
+
+`PolicySearch` returns at most three chunks with cosine similarity of at
+least 0.45. Measured with prefixes: real policy matches scored 0.54 and
+above, and an unrelated question ("best pizza in Lahore") scored 0.385 at
+most. 0.45 sits in that gap, so an irrelevant question returns nothing,
+which is what triggers the "no relevant policy" escalation rule.
+
+Known limitation: H2 chunks are coarse. For "who pays for a toilet blocked
+by wipes?", Clause 13 ranked third, because its vector averages six
+unrelated subclauses and blockages are one of them. It is still within the
+top three the agent receives.
+
+The fix is to split at subclauses and repeat the parent heading on each
+piece. Not done yet: the documents format subclauses inconsistently
+(numbered in the lease, appliance names in the warranty schedule, a table in
+the rate sheet), so it needs a more involved chunker.
+
+---
+
+## 2026-10-30 — Retrieval tests use real embeddings and skip without Ollama
+
+Ingestion tests fake the embeddings API. Retrieval tests cannot: fake
+vectors are random, so they cannot show whether a question finds the right
+clause.
+
+`PolicySearchTest` runs ingestion against the real model and skips itself
+when nothing answers on port 11434. CI has no Ollama, so CI does not guard
+retrieval quality. Run these tests locally before changing the chunker, the
+Embedder, or the threshold.
