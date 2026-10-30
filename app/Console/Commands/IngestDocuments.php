@@ -55,7 +55,7 @@ class IngestDocuments extends Command
 
             $texts = $pending->map(fn (DocumentChunk $chunk): string => $chunk->content)->all();
 
-            $vectors = $embedder->embed(array_values($texts));
+            $vectors = $embedder->embedDocuments(array_values($texts));
 
             foreach ($pending as $index => $chunk) {
                 $chunk->update(['embedding' => $vectors[$index]]);
