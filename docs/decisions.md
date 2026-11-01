@@ -329,3 +329,61 @@ clause.
 when nothing answers on port 11434. CI has no Ollama, so CI does not guard
 retrieval quality. Run these tests locally before changing the chunker, the
 Embedder, or the threshold.
+
+---
+
+## 2026-11-02 — Our own policy search tool, not the SDK's SimilaritySearch
+
+`SearchPolicyDocuments` wraps `PolicySearch`. The model sends a `query` and an
+optional `document_type`, which the schema restricts to the five
+`PolicyDocumentType` values. Results come back as text, each excerpt labelled
+with its source document (`[Lease Agreement]`) and separated by `---`. An empty
+result returns a sentence telling the model not to guess, rather than an empty
+string.
+
+Rejected: the SDK's `SimilaritySearch` with a custom closure. The closure
+receives only the query text, so the model could not ask for one document type.
+Also rejected: `SimilaritySearch::usingModel`, which embeds the query with the
+default provider instead of `Embedder`, so the prefix and model could differ
+from the stored chunks.
+
+The query underneath is unchanged: `whereVectorSimilarTo` inside
+`PolicySearch`. This decision is only about which class the model calls.
+`PolicySearch::search()` gained an optional `?PolicyDocumentType` as its last
+parameter, so existing callers are unaffected. It filters with `whereRelation`
+and eager-loads `policyDocument` so labelling costs no extra queries per chunk.
+
+---
+
+## 2026-11-02 — Tool arguments are validated in handle(), not only in the schema
+
+The schema tells the model what arguments exist and what shape they have. It
+does not stop a small local model from sending something else. `handle()` also
+calls `$request->validate()`, which throws `ValidationException` on bad input.
+
+Per the SDK docs, during a real run the validation messages are returned to the
+model as the tool result, so it can correct itself and call again. That is the
+"malformed tool arguments" row in the failure modes table. Tests that call
+`handle()` directly have no SDK around them, so they assert that the exception
+is thrown.
+
+---
+
+## 2026-11-02 — Upgraded laravel/ai from 0.10 to 1.3
+
+The documentation followed throughout Phase 2 describes 1.x, while 0.10.3 was
+installed. The mismatch surfaced when PHPStan flagged `Request::validate()`, and
+a search of `vendor/` confirmed the method did not exist in 0.10.3.
+
+1.0 changed conversation storage, agent middleware, token usage, and stream
+protocols. This project uses none of them yet, only the embeddings API and one
+tool, so the upgrade was cheapest now. Phase 1's tests passed unchanged.
+
+The `agent_conversations` migration, published from 0.x, differed from the
+package's 1.x version (a `steps` column replaces `tool_calls` and
+`tool_results`, plus a `status` column and a different index). The table was
+empty and nothing is deployed, so the migration file was replaced in place and
+only that migration was re-run. On a deployed database this would be a new,
+additive migration instead.
+
+Amends 2026-08-18: the SDK conversation tables are still not the audit source.

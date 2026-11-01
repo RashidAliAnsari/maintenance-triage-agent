@@ -57,15 +57,15 @@ context, then selects tools until it either completes triage or escalates.
 
 Tools:
 
-| Tool                    | Input                                  | Output                                      |
-| ----------------------- | -------------------------------------- | ------------------------------------------- |
-| ClassifyRequest         | description                            | category, urgency, confidence               |
-| SearchPolicyDocuments   | query, document_type                   | relevant policy excerpts (RAG)              |
-| DetermineResponsibility | category, description, policy excerpts | landlord / tenant / warranty / unclear      |
-| FindAvailableVendors    | trade, urgency                         | list of vendors with rates and availability |
-| CreateWorkOrder         | request_id, vendor_id, scheduled_for   | work order record                           |
-| NotifyTenant            | request_id, message                    | email sent                                  |
-| EscalateToHuman         | request_id, reason                     | request marked escalated                    |
+| Tool                    | Input                                  | Output                                                                 |
+| ----------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| ClassifyRequest         | description                            | category, urgency, confidence                                          |
+| SearchPolicyDocuments   | query, document_type (optional)        | relevant policy excerpts, each labelled with its source document (RAG) |
+| DetermineResponsibility | category, description, policy excerpts | landlord / tenant / warranty / unclear                                 |
+| FindAvailableVendors    | trade, urgency                         | list of vendors with rates and availability                            |
+| CreateWorkOrder         | request_id, vendor_id, scheduled_for   | work order record                                                      |
+| NotifyTenant            | request_id, message                    | email sent                                                             |
+| EscalateToHuman         | request_id, reason                     | request marked escalated                                               |
 
 Every tool call, its arguments, the agent's reasoning, and the final outcome are
 written to AgentDecision for audit.
@@ -122,7 +122,7 @@ This system does **not** include:
 
 - Laravel 13 (PHP 8.3), served via Herd
 - Livewire (admin UI)
-- Laravel AI SDK (agent, tools)
+- Laravel AI SDK 1.x (agent, tools)
 - PostgreSQL 17 + pgvector (Docker)
 - Ollama — qwen3:8b (agent), nomic-embed-text (embeddings)
 - Pest (tests)
